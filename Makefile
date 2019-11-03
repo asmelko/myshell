@@ -1,12 +1,22 @@
 CC=gcc
-FLAGS=-Wall -Wextra
-
-mysh: src/mysh.c
-	@$(CC) $(FLAGS) -o mysh src/mysh.c
+FLAGS=-Wall -Wextra -Iinclude
+CFLAGS= $(FLAGS) $(EXT)
+DEPS=include/line.h include/mysh.h
 
 .PHONY: clean all
 
-clean: 
-	@rm -f mysh
+all: build mysh
 
-all: clean mysh
+mysh: src/source.c build/mysh.o build/line.o 
+	$(CC) $(CFLAGS) -o $@ $^
+
+build/%.o: src/%.c $(DEPS)
+	$(CC) $(CFLAGS) -c -o $@ $<
+	
+
+build:
+	mkdir build
+
+clean: 
+	rm -f mysh
+	rm -rf build
