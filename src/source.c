@@ -21,11 +21,15 @@ int main(int argc, char **argv)
 
     if(arg_present) {
         if(check_length(&line))
-            errx(125,"line length exceeded");
-    }
-    else {
-
+            errx(125, "line length exceeded");
+        //return process_line(&line);
     }
 
-    return 0;
+    set_input_string("aaa");
+
+    yylex();
+
+    char* a = yylval;
+    
+    return get_input();
 }

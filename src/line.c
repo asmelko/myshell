@@ -2,7 +2,7 @@
 
 #include <string.h>
 
-int check_length(line_t* line)
+int check_length(const line_t* line)
 {
     return strlen(line->data) == MAXLINE - 1;
 }
