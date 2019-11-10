@@ -3,6 +3,7 @@
 #include <getopt.h>
 #include <string.h>
 #include <err.h>
+#include <assert.h>
 
 int main(int argc, char **argv)
 {
@@ -12,24 +13,24 @@ int main(int argc, char **argv)
     while ((opt = getopt(argc, argv, "c:")) != -1) {
         switch (opt) {
         case 'c':
-            strncpy(line.data, optarg, MAXLINE);
-            line.data[MAXLINE - 1] = '\0';
+            check_length(optarg);
+            strcpy(line.data, optarg);
             arg_present = 1;
             break;
         }
     }
 
-    if(arg_present) {
-        if(check_length(&line))
-            errx(125, "line length exceeded");
-        //return process_line(&line);
+    if (argc > optind)
+        if(arg_present || argc - optind > 1)
+            errx(1,"too many arguments");
+
+    if(arg_present)
+        return mysh_process_line(&line);
+
+    if(argc > optind) {
+        assert(argc - optind == 1);
+        return mysh_process_file(argv[optind]);
     }
 
-    set_input_string("aaa");
-
-    yylex();
-
-    char* a = yylval;
-    
-    return get_input();
+    return mysh_process_input();
 }

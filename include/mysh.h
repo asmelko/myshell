@@ -2,10 +2,11 @@
 #define MYSH_H
 
 #include "line.h"
-#include "lexer.h"
 
-int process_line(const line_t* line);
+#define SYNTAX_ERR 2
 
-int get_input();
+int mysh_process_line(const line_t* line);
+int mysh_process_file(const char* file);
+int mysh_process_input();
 
 #endif

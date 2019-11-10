@@ -7,6 +7,8 @@ typedef struct {
     char data[MAXLINE];
 } line_t;
 
-int check_length(const line_t* line);
+void check_length(const char* data);
+
+int is_blank(const char* data);
 
 #endif

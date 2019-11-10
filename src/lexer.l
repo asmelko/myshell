@@ -3,7 +3,15 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include "../include/lexer.h"
+#include "../include/scanner.h"
+
+enum yytokentype 
+{
+	SEMICOLON = 258,
+	WORD = 259
+};
+
+char* yylval;
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -30,14 +38,38 @@
 
 %%
 
-void set_input_string(const char* in) 
+void scan_init(const char* input)
 {
-  yy_scan_string(in);
+	yy_scan_string(input);
 }
 
-void end_lexical_scan(void) 
+int get_command(command_t* command)
 {
-  yy_delete_buffer(YY_CURRENT_BUFFER);
+    command->comm = NULL;
+    command->args = NULL;
+
+    int token;
+    entry_t** args_last = &command->args;
+
+    while((token = yylex())) {
+        if(token == WORD) {
+            if(!command->comm) 
+                command->comm = yylval;
+            else {
+                *args_last = list_create(yylval);
+                args_last = &(*args_last)->next;
+            }
+        }
+        else if (token == SEMICOLON) 
+            return command->comm == NULL ? 1 : -1;
+    }
+
+    return 0;
+}
+
+void scan_free()
+{
+    yy_delete_buffer(YY_CURRENT_BUFFER);
 }
 
 #pragma GCC diagnostic pop

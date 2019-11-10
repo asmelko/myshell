@@ -56,4 +56,9 @@ dkms.conf
 
 # program itself
 mysh
+
+#generated files
 generated/
+
+#internal tests
+tests/
