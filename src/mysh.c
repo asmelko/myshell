@@ -11,8 +11,11 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
-
-int mysh_line_number = -1;
+void mysh_init()
+{
+    mysh_line_number = -1;
+    processor_init();
+}
 
 void mysh_syntax_err()
 {
@@ -40,6 +43,7 @@ int mysh_process_line(const line_t* line)
     if(com == 1)
     {
         mysh_syntax_err();
+        last_err_code = SYNTAX_ERR;
         return SYNTAX_ERR;
     }
 

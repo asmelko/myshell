@@ -24,6 +24,8 @@ int main(int argc, char **argv)
         if(arg_present || argc - optind > 1)
             errx(1,"too many arguments");
 
+    mysh_init();
+
     if(arg_present)
         return mysh_process_line(&line);
 
