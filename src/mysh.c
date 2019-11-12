@@ -72,6 +72,7 @@ int mysh_process_file(const char* name)
                 line.data[line_size] = '\0';
                 return_value = mysh_process_line(&line);
                 ++mysh_line_number;
+                line_size = 0;
             }
             else {
                 line.data[line_size++] = c;
@@ -88,13 +89,29 @@ int mysh_process_file(const char* name)
     return return_value;
 }
 
+void get_prompt(char* buff, size_t buff_size)
+{
+    buff[0] = '\0';
+    strcat(buff, "mysh:");
+
+    if (getcwd(buff + 5, buff_size) == NULL)
+        buff[5] = '\0';
+
+    strcat(buff, "$ ");
+}
+
 int mysh_process_input()
 {
     char* data;
     line_t line;
     int return_value;
 
-    while((data = readline("mysh$ "))) 
+    size_t buff_size = 256;
+    char prompt[buff_size];
+
+    get_prompt(&prompt[0], buff_size);
+
+    while((data = readline(prompt))) 
     {
         check_length(data);
         strcpy(line.data,data);
@@ -104,6 +121,8 @@ int mysh_process_input()
 
         if(!is_blank(line.data))
             add_history(line.data);
+            
+        get_prompt(&prompt[0], buff_size);
     }
 
     return return_value;
