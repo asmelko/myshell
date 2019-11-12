@@ -32,16 +32,14 @@ int mysh_process_line(const line_t* line)
     int com;
     command_t command;
     
-    while((com = get_command(&command)) == -1) 
-    {
+    while((com = get_command(&command)) == -1) {
         process_command(&command);
         command_free(&command);
     }
     
     scan_free();
 
-    if(com == 1)
-    {
+    if(com == 1) {
         mysh_syntax_err();
         last_err_code = SYNTAX_ERR;
         return SYNTAX_ERR;
@@ -59,16 +57,15 @@ int mysh_process_file(const char* name)
 
     int return_value = 0;
 
-    {
+    { // read file
         mysh_line_number = 1;
         char c = '\0';
         ssize_t b_read;
         line_t line;
         size_t line_size = 0;
 
-        while ((b_read = read(desc, &c, sizeof(c))) > 0)
-        {
-            if(c == '\n') {
+        while ((b_read = read(desc, &c, sizeof(c))) > 0) {
+            if (c == '\n') {
                 line.data[line_size] = '\0';
                 return_value = mysh_process_line(&line);
                 ++mysh_line_number;
@@ -111,8 +108,7 @@ int mysh_process_input()
 
     get_prompt(&prompt[0], buff_size);
 
-    while((data = readline(prompt))) 
-    {
+    while((data = readline(prompt))) {
         check_length(data);
         strcpy(line.data,data);
         free(data);

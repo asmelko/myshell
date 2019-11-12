@@ -26,10 +26,10 @@ int main(int argc, char **argv)
 
     mysh_init();
 
-    if(arg_present)
+    if (arg_present)
         return mysh_process_line(&line);
 
-    if(argc > optind) {
+    if (argc > optind) {
         assert(argc - optind == 1);
         return mysh_process_file(argv[optind]);
     }

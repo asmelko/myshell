@@ -6,6 +6,8 @@
 #include <err.h>
 #include <stdio.h>
 #include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 void processor_init()
 {
@@ -14,7 +16,7 @@ void processor_init()
 
 int process_exit()
 {
-    return last_err_code;
+    exit(last_err_code);
 }
 
 int ret_err(const char* command, const char* message)
@@ -23,6 +25,7 @@ int ret_err(const char* command, const char* message)
         fprintf(stderr, "%s: %s\n", command, message);
     else
         fprintf(stderr, "%s: %s\n", command, strerror(errno));
+    last_err_code = 1;
     return 1;
 }
 
@@ -50,7 +53,7 @@ int process_cd(const command_t* command)
         }
 
         if(command->args->next) //more than 1 arg
-            return ret_err("cd", "Too many arguments");
+            return ret_err("cd", "too many arguments");
     }
 
     if (chdir(to_path) || 
@@ -60,13 +63,56 @@ int process_cd(const command_t* command)
     )
         return ret_err("cd", NULL);
 
+    last_err_code = 0;
     return 0;
 }
 
-int process_rest(const command_t* command)
+char** prepare_args(const entry_t* args)
 {
-    (void)(command);
+    size_t size = list_size(args) + 2;
+    char** arg_arr = (char**)malloc(size * sizeof(char*));
+    
+    if(!arg_arr)
+        err(1,"processor");
 
+    int tmp = 1;
+    while(args) {
+        arg_arr[tmp++] = args->value;
+        args = args->next;
+    }
+    arg_arr[size-1] = NULL;
+
+    return arg_arr; 
+}
+
+int process(const command_t* command)
+{
+    char* comm_begin = strrchr(command->comm, '/');
+    
+    char* program_name = comm_begin ? comm_begin + 1 : command->comm;
+    int absolute = comm_begin ? 1 : 0;
+
+    int pid = fork();
+
+    if(pid == -1)
+        ret_err(program_name, NULL);
+
+    if(pid == 0) {
+        char** args = prepare_args(command->args);
+        args[0] = program_name;
+
+        if(absolute)
+            execv(command->comm, args);
+        else
+            execvp(command->comm, args);
+
+        free(args);
+        exit(ret_err(program_name, NULL));
+    }
+    else {
+        int status;
+        wait(&status);
+    }
     return 0;
 }
 
@@ -80,5 +126,5 @@ int process_command(const command_t* command)
     else if (!strcmp(command->comm, "cd"))
         return process_cd(command);
     else 
-        return process_rest(command);
+        return process(command);
 }

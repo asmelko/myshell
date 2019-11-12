@@ -1,7 +1,5 @@
-/* recognize tokens for the calculator and print them out */
 %{
 #include <string.h>
-#include <stdlib.h>
 
 #include "../include/scanner.h"
 

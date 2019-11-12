@@ -13,7 +13,7 @@ int is_blank(const char* data)
 {
     for (size_t i = 0; data[i]!='\0'; ++i)
     {
-        if(data[i] != ' ')
+        if (data[i] != ' ')
             return 0;
     }
     return 1;
