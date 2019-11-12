@@ -26,13 +26,14 @@ char* yylval;
 {
 	[^\n]*						/* ignore */
 	\n							BEGIN(INITIAL);
+    <<EOF>>                     BEGIN(INITIAL);
 }
 
 [ \r\t\f]+						/* whitespace */
 
 \n								;
 
-[^  \r\t\f;#\n]+				{ yylval = strdup(yytext); return WORD;}
+[^  \r\t\f;#\n][^  \r\t\f;\n]*  { yylval = strdup(yytext); return WORD;}
 
 %%
 

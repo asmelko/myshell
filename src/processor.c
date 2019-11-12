@@ -25,8 +25,7 @@ int ret_err(const char* command, const char* message)
         fprintf(stderr, "%s: %s\n", command, message);
     else
         fprintf(stderr, "%s: %s\n", command, strerror(errno));
-    last_err_code = 1;
-    return 1;
+    RETURN(1);
 }
 
 int process_cd(const command_t* command)
@@ -63,8 +62,7 @@ int process_cd(const command_t* command)
     )
         return ret_err("cd", NULL);
 
-    last_err_code = 0;
-    return 0;
+    RETURN(0);
 }
 
 char** prepare_args(const entry_t* args)
@@ -109,11 +107,17 @@ int process(const command_t* command)
         free(args);
         exit(ret_err(program_name, NULL));
     }
-    else {
-        int status;
-        wait(&status);
+
+    int status;
+    wait(&status);
+
+    if (WIFEXITED(status))
+        RETURN(WEXITSTATUS(status));
+    if (WIFSIGNALED(status)) {
+        int sig = WTERMSIG(status);
+        fprintf(stderr, "Killed by signam %d", sig);
+        RETURN(128 + sig);
     }
-    return 0;
 }
 
 int process_command(const command_t* command)

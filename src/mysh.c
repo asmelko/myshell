@@ -11,6 +11,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+int was_syntax_error;
+
 void mysh_init()
 {
     mysh_line_number = -1;
@@ -28,6 +30,7 @@ void mysh_syntax_err()
 int mysh_process_line(const line_t* line)
 {
     scan_init(line->data);
+    was_syntax_error = 0;
 
     int com;
     command_t command;
@@ -41,8 +44,8 @@ int mysh_process_line(const line_t* line)
 
     if(com == 1) {
         mysh_syntax_err();
-        last_err_code = SYNTAX_ERR;
-        return SYNTAX_ERR;
+        was_syntax_error = 1;
+        RETURN(SYNTAX_ERR);
     }
 
     return process_command(&command);
@@ -53,7 +56,7 @@ int mysh_process_file(const char* name)
     int desc = open(name, O_RDONLY);
 
     if(desc < 0)
-        err(1, "could not open file");
+        err(1, "process_file");
 
     int return_value = 0;
 
@@ -75,10 +78,12 @@ int mysh_process_file(const char* name)
                 line.data[line_size++] = c;
                 check_length(line.data);
             }
+            if (was_syntax_error)
+                break;
         }
 
         if (b_read == -1)
-            err(1, "file read problem");
+            err(1, "process_file");
     }
 
     close(desc);
@@ -108,14 +113,14 @@ int mysh_process_input()
 
     get_prompt(&prompt[0], buff_size);
 
-    while((data = readline(prompt))) {
+    while ((data = readline(prompt))) {
         check_length(data);
         strcpy(line.data,data);
         free(data);
         
         return_value = mysh_process_line(&line);
 
-        if(!is_blank(line.data))
+        if (!is_blank(line.data))
             add_history(line.data);
             
         get_prompt(&prompt[0], buff_size);
