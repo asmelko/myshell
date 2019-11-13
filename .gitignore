@@ -59,6 +59,3 @@ mysh
 
 #generated files
 generated/
-
-#internal tests
-tests/
