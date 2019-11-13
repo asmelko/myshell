@@ -48,7 +48,9 @@ int mysh_process_line(const line_t* line)
         RETURN(SYNTAX_ERR);
     }
 
-    return process_command(&command);
+    int ret = process_command(&command);
+    command_free(&command);
+    return ret;
 }
 
 int mysh_process_file(const char* name)
@@ -76,7 +78,7 @@ int mysh_process_file(const char* name)
             }
             else {
                 line.data[line_size++] = c;
-                check_length(line.data);
+                check_length_s(line_size);
             }
             if (was_syntax_error)
                 break;

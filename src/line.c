@@ -5,7 +5,12 @@
 
 void check_length(const char* data)
 {
-    if (strlen(data) >= MAXLINE)
+    check_length_s(strlen(data));
+}
+
+void check_length_s(size_t size)
+{
+    if (size >= MAXLINE)
         errx(125, "line length %d exceeded", MAXLINE - 1);
 }
 

@@ -7,7 +7,7 @@ LIBS = -lfl -lreadline
 DEPS = $(patsubst %, include/%,$(_DEPS))
 OBJ = $(patsubst %, build/%,$(_OBJ))
 
-.PHONY: clean all test_1
+.PHONY: clean all test-1 test-2
 
 all: build generated mysh 
 
@@ -33,11 +33,11 @@ build:
 generated:
 	mkdir generated
 
-test_1: all
+test-1: all
 	cd tests; \
 	./run-tests.sh $$( cat phase-1.tests )
 
-test_2: all	
+test-2: all	
 	cd tests; \
 	./run-tests.sh
 
