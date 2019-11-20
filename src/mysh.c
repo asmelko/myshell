@@ -1,3 +1,5 @@
+#define	_XOPEN_SOURCE	700
+
 #include "../include/mysh.h"
 #include "../include/scanner.h"
 #include "../include/processor.h"
@@ -7,15 +9,33 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <err.h>
+#include <signal.h>
+#include <assert.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
 
 int was_syntax_error;
+int interrupted;
+
+void interrupt_handler(int sig)
+{
+    assert(sig == SIGINT);
+    interrupted = 1;
+}
 
 void mysh_init()
 {
     mysh_line_number = -1;
+    interrupted = 0;
+
+    rl_getc_function = getc;
+
+    struct sigaction act = {0};
+    act.sa_handler = interrupt_handler;
+    act.sa_flags = SA_RESTART;
+    sigaction(SIGINT, &act, NULL);
+
     processor_init();
 }
 
@@ -106,7 +126,7 @@ void get_prompt(char* buff, size_t buff_size)
 
 int mysh_process_input()
 {
-    char* data;
+    char* data = NULL;
     line_t line;
     int return_value;
 
@@ -116,9 +136,17 @@ int mysh_process_input()
     get_prompt(&prompt[0], buff_size);
 
     while ((data = readline(prompt))) {
+
+        if (interrupted) {
+            interrupted = 0;
+            free(data);
+            continue;
+        }
+        
         check_length(data);
         strcpy(line.data,data);
         free(data);
+        data = NULL;
         
         return_value = mysh_process_line(&line);
 

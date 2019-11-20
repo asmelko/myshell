@@ -115,7 +115,7 @@ int process(const command_t* command)
         RETURN(WEXITSTATUS(status));
     if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
-        fprintf(stderr, "Killed by signam %d", sig);
+        fprintf(stderr, "Killed by signal %d", sig);
         RETURN(128 + sig);
     }
 }
