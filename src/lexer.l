@@ -108,8 +108,11 @@ int get_command(command_t* command)
             }
         }
         else if (token == PIPE) {
+            if ((*comm_last)->comm == NULL)
+                return 1;
             make_pipe(*comm_last);
             comm_last = &(*comm_last)->pipe;
+            args_last = &(*comm_last)->args;
         }
         else if (token == LT || token == GT || token == DGT)
             redir = token;
@@ -117,7 +120,13 @@ int get_command(command_t* command)
             return (*comm_last)->comm == NULL ? 1 : -1;
     }
 
-    return redir ? 1 : 0;
+    if((*comm_last != command && (*comm_last)->comm == NULL)) // last pipe command empty
+        return 1;
+
+    if(redir) //last redirection empty
+        return 1;
+        
+    return 0;
 }
 
 void scan_free()
