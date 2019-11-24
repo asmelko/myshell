@@ -1,5 +1,7 @@
 %{
 #include <string.h>
+#include <err.h>
+#include <assert.h>
 
 #include "../include/scanner.h"
 
@@ -41,7 +43,7 @@ char* yylval;
 
 \n								;
 
-[^  \r\t\f;#\n][^  \r\t\f;\n]*  { yylval = strdup(yytext); return WORD;}
+[^  \r\t\f;#\n<>|][^  \r\t\f;\n<>|]*    { yylval = strdup(yytext); if(!yylval) err(1,"scanner"); return WORD;}
 
 %%
 
@@ -50,27 +52,72 @@ void scan_init(const char* input)
 	yy_scan_string(input);
 }
 
+void add_redir(command_t* command, int redir)
+{
+    switch (redir)
+    {
+    case LT:
+        if (command->redir_in)
+            free(command->redir_in);
+        command->redir_in = yylval;
+        break;
+    case GT:
+    case DGT:
+        if (command->redir_out)
+            free(command->redir_out);
+        command->redir_out = yylval;
+        break;
+    default:
+        assert(0);
+        break;
+    }
+    command->append = redir == DGT;
+}
+
+void make_pipe(command_t* command)
+{
+    command->pipe = (command_t*)malloc(sizeof(command_t));
+    if (!command->pipe)
+        err(1, "scanner");
+    command_init(command->pipe);
+}
+
 int get_command(command_t* command)
 {
    command_init(command);
 
-    int token;
+    int token, redir = 0;
     entry_t** args_last = &command->args;
+    command_t** comm_last = &command;
+
 
     while((token = yylex())) {
+        if(redir && token != WORD)
+            return 1;
+
         if(token == WORD) {
-            if(!command->comm) 
-                command->comm = yylval;
+            if(redir) {
+                add_redir(*comm_last, redir);
+                redir = 0;
+            }
+            else if(!(*comm_last)->comm) 
+                (*comm_last)->comm = yylval;
             else {
                 *args_last = list_create(yylval);
                 args_last = &(*args_last)->next;
             }
         }
+        else if (token == PIPE) {
+            make_pipe(*comm_last);
+            comm_last = &(*comm_last)->pipe;
+        }
+        else if (token == LT || token == GT || token == DGT)
+            redir = token;
         else if (token == SEMICOLON) 
-            return command->comm == NULL ? 1 : -1;
+            return (*comm_last)->comm == NULL ? 1 : -1;
     }
 
-    return 0;
+    return redir ? 1 : 0;
 }
 
 void scan_free()

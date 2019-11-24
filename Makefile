@@ -21,12 +21,6 @@ build/lexer.o: src/lexer.l
 	flex -o generated/lexer.c src/lexer.l
 	$(CC) $(CFLAGS) -c -o $@ generated/lexer.c
 
-generated/parser.%: src/parser.y
-	bison --defines=generated/parser.h -o generated/parser.c src/parser.y
-	
-build/parser.o: generated/parser.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 build:
 	mkdir build
 
