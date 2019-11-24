@@ -3,9 +3,9 @@
 
 #include <stddef.h>
 
-typedef struct node {
+typedef struct entry_node {
     char* value;
-    struct node* next;
+    struct entry_node* next;
 } entry_t;
 
 entry_t* list_create(char* value);

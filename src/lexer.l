@@ -6,7 +6,11 @@
 enum yytokentype 
 {
 	SEMICOLON = 258,
-	WORD = 259
+    LT = 259,
+    GT = 300,
+    DGT = 301,
+    PIPE = 302,
+	WORD = 303
 };
 
 char* yylval;
@@ -20,6 +24,10 @@ char* yylval;
 %%
 
 ";"								return SEMICOLON;
+"<"                             return LT;
+">"                             return GT;
+">>"                            return DGT;
+"|"                             return PIPE;
 "#" 							BEGIN(COMMENT);
 
 <COMMENT>
@@ -44,8 +52,7 @@ void scan_init(const char* input)
 
 int get_command(command_t* command)
 {
-    command->comm = NULL;
-    command->args = NULL;
+   command_init(command);
 
     int token;
     entry_t** args_last = &command->args;
