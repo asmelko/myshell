@@ -3,7 +3,7 @@
 
 #include "command.h"
 
-#define RETURN(x) last_err_code = x; return x;
+#define RETURN(x) return last_err_code = x;
 
 int last_err_code;
 

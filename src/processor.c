@@ -71,10 +71,10 @@ char** prepare_args(const entry_t* args)
     char** arg_arr = (char**)malloc(size * sizeof(char*));
     
     if(!arg_arr)
-        err(1,"processor");
+        err(1, "processor");
 
     int tmp = 1;
-    while(args) {
+    while (args) {
         arg_arr[tmp++] = args->value;
         args = args->next;
     }
@@ -115,9 +115,10 @@ int process(const command_t* command)
         RETURN(WEXITSTATUS(status));
     if (WIFSIGNALED(status)) {
         int sig = WTERMSIG(status);
-        fprintf(stderr, "Killed by signal %d", sig);
+        fprintf(stderr, "Killed by signal %d\n", sig);
         RETURN(128 + sig);
     }
+    return 0;
 }
 
 int process_command(const command_t* command)

@@ -24,12 +24,18 @@ void interrupt_handler(int sig)
     interrupted = 1;
 }
 
+int my_getc(FILE* file)
+{
+    int result = getc(file);
+    return interrupted ? '\n' : result;
+}
+
 void mysh_init()
 {
     mysh_line_number = -1;
     interrupted = 0;
 
-    rl_getc_function = getc;
+    rl_getc_function = my_getc;
 
     struct sigaction act = {0};
     act.sa_handler = interrupt_handler;
@@ -70,6 +76,9 @@ int mysh_process_line(const line_t* line)
 
     int ret = process_command(&command);
     command_free(&command);
+
+    interrupted = 0;
+
     return ret;
 }
 
@@ -118,7 +127,7 @@ void get_prompt(char* buff, size_t buff_size)
     buff[0] = '\0';
     strcat(buff, "mysh:");
 
-    if (getcwd(buff + 5, buff_size) == NULL)
+    if (getcwd(buff + 5, buff_size - 8) == NULL)
         buff[5] = '\0';
 
     strcat(buff, "$ ");
@@ -128,7 +137,7 @@ int mysh_process_input()
 {
     char* data = NULL;
     line_t line;
-    int return_value;
+    int return_value = last_err_code;
 
     size_t buff_size = 256;
     char prompt[buff_size];
@@ -156,5 +165,6 @@ int mysh_process_input()
         get_prompt(&prompt[0], buff_size);
     }
 
+    printf("\n");
     return return_value;
 }
