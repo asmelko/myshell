@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 void processor_init()
 {
@@ -85,7 +86,27 @@ char** prepare_args(const entry_t* args)
 
 void process_redirect(const command_t* command)
 {
-    (void)(command);
+    if (command->redir_in) {
+        int fd = open(command->redir_in, O_RDONLY);
+
+        if (fd == -1)
+            err(1, "%s", command->redir_in);
+
+        if (close(0) || dup(fd) == -1 || close(fd))
+            err(1 , "process");
+    }
+
+    if (command->redir_out) {
+        int fd = command->append ? 
+            open(command->redir_out, O_WRONLY | O_CREAT | O_APPEND, 0666) : 
+            open(command->redir_out, O_WRONLY | O_CREAT, 0666);
+
+        if (fd == -1)
+            err(1, "%s", command->redir_out);
+
+        if (close(1) || dup(fd) == -1 || close(fd))
+            err(1 , "process");
+    }
 }
 
 void free_pipes(int* pipes, size_t pipe_count)
@@ -152,7 +173,8 @@ int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
     else
         execvp(command->comm, args);
 
-    free(args);
+    if (errno == ENOENT)
+        err(127, "%s", program_name);
     exit(ret_err(program_name, NULL));
 }
 
