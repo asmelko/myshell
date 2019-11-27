@@ -74,7 +74,7 @@ int mysh_process_line(const line_t* line)
         RETURN(SYNTAX_ERR);
     }
 
-    int ret = process_command(&command);
+    int ret = command.comm ? process_command(&command) : last_err_code;
     command_free(&command);
 
     interrupted = 0;
