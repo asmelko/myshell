@@ -12,12 +12,12 @@
 
 void processor_init()
 {
-    last_err_code = 0;
+    last_return_value = 0;
 }
 
-int process_exit()
+void process_exit()
 {
-    exit(last_err_code);
+    exit(last_return_value);
 }
 
 int ret_err(const char* command, const char* message)
@@ -26,7 +26,7 @@ int ret_err(const char* command, const char* message)
         fprintf(stderr, "%s: %s\n", command, message);
     else
         fprintf(stderr, "%s: %s\n", command, strerror(errno));
-    RETURN(1);
+    return 1;
 }
 
 int process_cd(const command_t* command)
@@ -50,6 +50,7 @@ int process_cd(const command_t* command)
             to_path = getenv("OLDPWD");
             if(!to_path)
                 return ret_err("cd", "OLDPWD not set");
+            printf("%s\n", to_path);
         }
 
         if(command->args->next) //more than 1 arg
@@ -63,7 +64,7 @@ int process_cd(const command_t* command)
     )
         return ret_err("cd", NULL);
 
-    RETURN(0);
+    return 0;
 }
 
 char** prepare_args(const entry_t* args)
@@ -118,16 +119,17 @@ void free_pipes(int* pipes, size_t pipe_count)
     free(pipes);
 }
 
+//redirect input and output with respect to pipes
 void process_pipes(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
 {
     if (!pipes)
         return;
 
-    if (idx)
+    if (idx) //command in the begin
         if (close(0) || dup(pipes[2 * (idx - 1)]) == -1)
             err(1, "process");
 
-    if (command->pipe)
+    if (command->pipe) //command in the end
         if (close(1) || dup(pipes[2 * idx + 1]) == -1)
             err(1, "process");
 
@@ -136,6 +138,7 @@ void process_pipes(const command_t* command, int* pipes, size_t pipe_count, size
     return;
 }
 
+//process one command
 int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
 {
     int pid = fork();
@@ -149,16 +152,11 @@ int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
     process_pipes(command, pipes, pipe_count, idx);
     process_redirect(command);
 
+    //process internal commands in piped statement
     if (!strcmp(command->comm, "exit"))
-    {
-        sleep(1);
         exit(0);
-    }
     else if (!strcmp(command->comm, "cd"))
-    {
-        sleep(1);
         exit(process_cd(command));
-    }
 
     char* comm_begin = strrchr(command->comm, '/');
     
@@ -178,12 +176,13 @@ int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
     exit(ret_err(program_name, NULL));
 }
 
+//create pipes for whole statement
 size_t create_pipes(const command_t* command, int** pipes)
 {
     size_t pipe_count = 0;
     for (command_t* next = command->pipe; next; next = next->pipe, ++pipe_count);
 
-    if (!pipe_count) {
+    if (!pipe_count) { // no pipes there
         *pipes = NULL;
         return pipe_count;
     }
@@ -193,7 +192,7 @@ size_t create_pipes(const command_t* command, int** pipes)
     if (!*pipes)
         err(1, "processor");
 
-    for (size_t i = 0; i < pipe_count; ++i)
+    for (size_t i = 0; i < pipe_count; ++i) // populate pipe array
         if (pipe(&(*pipes)[i * 2]))
             err(1, "processor");
 
@@ -206,26 +205,26 @@ int process_command(const command_t* command)
     size_t pipe_count = create_pipes(command, &pipes);
     int return_value;
 
-    if (pipe_count == 0) {
+    if (pipe_count == 0) { // performs internal commands in the current process if no pipes 
         if (!strcmp(command->comm, "exit"))
-            return process_exit();
+            process_exit();
         else if (!strcmp(command->comm, "cd"))
-            return process_cd(command);
+            RETURN(process_cd(command));
     }
 
-    int* processes = (int*)malloc((pipe_count + 1) * sizeof(int));
-    if(!processes)
+    int* process_pids = (int*)malloc((pipe_count + 1) * sizeof(int));
+    if (!process_pids)
         err(1, "processor");
 
     const command_t* next = command;
-    for (size_t i = 0; i < pipe_count + 1; ++i, next = next->pipe)
-        processes[i] = process(next, pipes, pipe_count, i);
+    for (size_t i = 0; i < pipe_count + 1; ++i, next = next->pipe) // commands-in-pipe process loop
+        process_pids[i] = process(next, pipes, pipe_count, i);
 
     free_pipes(pipes, pipe_count);
 
-    for (size_t i = 0; i < pipe_count + 1; ++i) {
+    for (size_t i = 0; i < pipe_count + 1; ++i) { // commands-in-pipe wait loop
         int status;
-        waitpid(processes[i], &status, 0);
+        waitpid(process_pids[i], &status, 0);
 
         if (WIFEXITED(status))
             return_value = WEXITSTATUS(status);
@@ -236,7 +235,7 @@ int process_command(const command_t* command)
         }
     }
 
-    free(processes);
+    free(process_pids);
     
     RETURN(return_value);
 }

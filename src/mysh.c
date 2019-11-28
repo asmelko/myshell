@@ -74,7 +74,7 @@ int mysh_process_line(const line_t* line)
         RETURN(SYNTAX_ERR);
     }
 
-    int ret = command.comm ? process_command(&command) : last_err_code;
+    int ret = command.comm ? process_command(&command) : last_return_value;
     command_free(&command);
 
     interrupted = 0;
@@ -137,7 +137,7 @@ int mysh_process_input()
 {
     char* data = NULL;
     line_t line;
-    int return_value = last_err_code;
+    int return_value = last_return_value;
 
     size_t buff_size = 256;
     char prompt[buff_size];
@@ -153,7 +153,7 @@ int mysh_process_input()
         }
         
         check_length(data);
-        strcpy(line.data,data);
+        strcpy(line.data, data);
         free(data);
         data = NULL;
         
