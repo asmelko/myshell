@@ -61,15 +61,16 @@ int mysh_process_line(const line_t* line)
     int com;
     command_t command;
     
-    while((com = get_command(&command)) == -1) {
+    while ((com = get_command(&command)) == -1) {
         process_command(&command);
         command_free(&command);
     }
     
     scan_free();
 
-    if(com == 1) {
+    if (com == 1) {
         mysh_syntax_err();
+        command_free(&command);
         was_syntax_error = 1;
         RETURN(SYNTAX_ERR);
     }
