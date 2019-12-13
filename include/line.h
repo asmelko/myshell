@@ -8,7 +8,7 @@
 
 //struct for line of input
 typedef struct {
-    char data[MAXLINE];
+	char data[MAXLINE];
 } line_t;
 
 //checks length of line end exits if MAXLINE exceeded

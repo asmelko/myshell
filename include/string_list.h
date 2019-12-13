@@ -5,8 +5,8 @@
 
 //struct for node of linked list of strings
 typedef struct entry_node {
-    char* value;
-    struct entry_node* next;
+	char* value;
+	struct entry_node* next;
 } entry_t;
 
 //creates new node of string list
