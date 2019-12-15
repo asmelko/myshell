@@ -20,7 +20,7 @@ int interrupted;
 
 void interrupt_handler(int sig)
 {
- 	assert(sig == SIGINT);
+	assert(sig == SIGINT);
 	interrupted = 1;
 }
 
@@ -40,8 +40,8 @@ void mysh_init()
 	struct sigaction act = {0};
 	act.sa_handler = interrupt_handler;
 	act.sa_flags = SA_RESTART;
-	if( sigaction(SIGINT, &act, NULL))
-		err(1,"mysh");
+	if (sigaction(SIGINT, &act, NULL))
+		err(1, "mysh");
 
 	processor_init();
 }
@@ -127,7 +127,7 @@ int mysh_process_file(const char* name)
 void get_prompt(char* buff, size_t buff_size)
 {
 	buff[0] = '\0';
- 	strcat(buff, "mysh:");
+	strcat(buff, "mysh:");
 
 	if (getcwd(buff + 5, buff_size - 8) == NULL)
 		buff[5] = '\0';
