@@ -20,7 +20,7 @@ int interrupted;
 
 void interrupt_handler(int sig)
 {
-	assert(sig == SIGINT);
+ 	assert(sig == SIGINT);
 	interrupted = 1;
 }
 
@@ -40,7 +40,8 @@ void mysh_init()
 	struct sigaction act = {0};
 	act.sa_handler = interrupt_handler;
 	act.sa_flags = SA_RESTART;
-	sigaction(SIGINT, &act, NULL);
+	if( sigaction(SIGINT, &act, NULL))
+		err(1,"mysh");
 
 	processor_init();
 }
@@ -60,12 +61,12 @@ int mysh_process_line(const line_t* line)
 
 	int com;
 	command_t command;
-	
+
 	while ((com = get_command(&command)) == -1) {
 		process_command(&command);
 		command_free(&command);
 	}
-	
+
 	scan_free();
 
 	if (com == 1) {
@@ -126,7 +127,7 @@ int mysh_process_file(const char* name)
 void get_prompt(char* buff, size_t buff_size)
 {
 	buff[0] = '\0';
-	strcat(buff, "mysh:");
+ 	strcat(buff, "mysh:");
 
 	if (getcwd(buff + 5, buff_size - 8) == NULL)
 		buff[5] = '\0';
@@ -145,24 +146,27 @@ int mysh_process_input()
 
 	get_prompt(&prompt[0], buff_size);
 
-	while ((data = readline(prompt))) {
-
+	while ((data = readline(prompt)) || interrupted) {
 		if (interrupted) {
 			interrupted = 0;
 			free(data);
+			printf("\n");
 			continue;
 		}
-		
+
+		if (!data)
+			break;
+
 		check_length(data);
 		strcpy(line.data, data);
 		free(data);
 		data = NULL;
-		
+
 		return_value = mysh_process_line(&line);
 
 		if (!is_blank(line.data))
 			add_history(line.data);
-			
+
 		get_prompt(&prompt[0], buff_size);
 	}
 
