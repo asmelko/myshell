@@ -110,36 +110,30 @@ void process_redirect(const command_t* command)
 	}
 }
 
-void free_pipes(int* pipes, size_t pipe_count)
+void free_pipe(int* pipefd)
 {
-	for (size_t i = 0; i < pipe_count * 2; ++i)
-		if(close(pipes[i]))
-			err(1, "process");
-
-	free(pipes);
+	if (close(pipefd[0]) || close(pipefd[1]))
+		err(1,"processor");
 }
 
 //redirect input and output with respect to pipes
-void process_pipes(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
+void process_pipes(int* pipefd_l, int* pipefd_r)
 {
-	if (!pipes)
-		return;
-
-	if (idx) //command in the begin
-		if (close(0) || dup(pipes[2 * (idx - 1)]) == -1)
+	if (pipefd_l[0] != -1) { //command not in the begin
+		if (close(0) || dup(pipefd_l[0]) == -1)
 			err(1, "process");
+		free_pipe(pipefd_l);
+	}
 
-	if (command->pipe) //command in the end
-		if (close(1) || dup(pipes[2 * idx + 1]) == -1)
+	if (pipefd_r[1] != -1) { //command not in the end
+		if (close(1) || dup(pipefd_r[1]) == -1)
 			err(1, "process");
-
-	free_pipes(pipes, pipe_count);
-
-	return;
+		free_pipe(pipefd_r);
+	}
 }
 
 //process one command
-int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
+int process(const command_t* command, int* pipefd_l, int* pipefd_r)
 {
 	int pid = fork();
 
@@ -149,7 +143,7 @@ int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
 	if (pid)
 		return pid;
 	
-	process_pipes(command, pipes, pipe_count, idx);
+	process_pipes(pipefd_l, pipefd_r);
 	process_redirect(command);
 
 	//process internal commands in piped statement
@@ -176,34 +170,44 @@ int process(const command_t* command, int* pipes, size_t pipe_count, size_t idx)
 	exit(ret_err(program_name, NULL));
 }
 
-//create pipes for whole statement
-size_t create_pipes(const command_t* command, int** pipes)
+//create pipes and process command
+int* pipes_and_process(const command_t* command, size_t pipe_count)
 {
-	size_t pipe_count = 0;
-	for (command_t* next = command->pipe; next; next = next->pipe, ++pipe_count);
-
-	if (!pipe_count) { // no pipes there
-		*pipes = NULL;
-		return pipe_count;
-	}
-
-	*pipes = (int*)malloc(2 * pipe_count * sizeof(int));
-
-	if (!*pipes)
+	int* process_pids = (int*)malloc((pipe_count + 1) * sizeof(int));
+	if (!process_pids)
 		err(1, "processor");
 
-	for (size_t i = 0; i < pipe_count; ++i) // populate pipe array
-		if (pipe(&(*pipes)[i * 2]))
-			err(1, "processor");
+	const command_t* next = command;
+	int pipefd_l[2], pipefd_r[2];
+	pipefd_l[0] = pipefd_l[1] = -1;
+	pipefd_r[0] = pipefd_r[1] = -1;
 
-	return pipe_count;
+	for (size_t i = 0; i < pipe_count + 1; ++i, next = next->pipe) { //commands-in-pipe process loop
+		if (i != pipe_count) { //create new pipe
+			if (pipe(pipefd_r))
+				err(1, "process");
+		}
+		else 
+			pipefd_r[0] = pipefd_r[1] = -1;
+
+		process_pids[i] = process(next, pipefd_l, pipefd_r);
+
+		if (i != 0) //free previous pipe
+			free_pipe(pipefd_l);
+
+		pipefd_l[0] = pipefd_r[0]; //swap
+		pipefd_l[1] = pipefd_r[1];
+	}
+
+	return process_pids;
 }
 
 int process_command(const command_t* command)
 {
-	int* pipes;
-	size_t pipe_count = create_pipes(command, &pipes);
+	size_t pipe_count = 0;
 	int return_value;
+	
+	for (command_t* next = command->pipe; next; next = next->pipe, ++pipe_count);
 
 	if (pipe_count == 0) { // performs internal commands in the current process if no pipes 
 		if (!strcmp(command->comm, "exit"))
@@ -212,15 +216,7 @@ int process_command(const command_t* command)
 			RETURN(process_cd(command));
 	}
 
-	int* process_pids = (int*)malloc((pipe_count + 1) * sizeof(int));
-	if (!process_pids)
-		err(1, "processor");
-
-	const command_t* next = command;
-	for (size_t i = 0; i < pipe_count + 1; ++i, next = next->pipe) // commands-in-pipe process loop
-		process_pids[i] = process(next, pipes, pipe_count, i);
-
-	free_pipes(pipes, pipe_count);
+	int* process_pids = pipes_and_process(command, pipe_count);
 
 	for (size_t i = 0; i < pipe_count + 1; ++i) { // commands-in-pipe wait loop
 		int status;
